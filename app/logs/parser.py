@@ -10,20 +10,13 @@ class LogParser:
 
     @staticmethod
     def parse_line(line: str):
+        """Parse Nginx access log lines."""
         match = LogParser.NGINX_PATTERN.match(line.strip())
         if not match:
             return None
         
         groups = match.groups()
         try:
-            # Parse [27/Jul/2023:14:52:19 +0000]
-            # timestamp format: %d/%b/%Y:%H:%M:%S %z
-            # Actually we can just return it or parse to seconds
-            # Nginx timestamp: 24/Mar/2026:12:00:00 +0000
-            # dt = datetime.strptime(groups[1], "%d/%b/%Y:%H:%M:%S %z")
-            # But simpler to just use current time if we're streaming live,
-            # though log timestamp is better for precision.
-            
             return {
                 "ip": groups[0],
                 "time_local": groups[1],
@@ -37,3 +30,18 @@ class LogParser:
             }
         except Exception:
             return None
+
+    @staticmethod
+    def parse_ssh_line(line: str):
+        """Parse SSH auth log lines for failed login attempts."""
+        # Pattern: Failed password for <user> from <ip> port <port> ssh2
+        # Or: Failed password for invalid user <user> from <ip> port <port> ssh2
+        pattern = re.compile(r'Failed password for (?:invalid user )?(\S+) from (\S+) port \d+ ssh2')
+        match = pattern.search(line)
+        if match:
+            return {
+                "user": match.group(1),
+                "ip": match.group(2),
+                "type": "SSH_FAILED_LOGIN"
+            }
+        return None

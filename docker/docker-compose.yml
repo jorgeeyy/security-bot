@@ -63,6 +63,7 @@ services:
       - NGINX_LOG_PATH=/var/log/nginx/access.log
     volumes:
       - /var/log/nginx:/var/log/nginx:ro
+      - /var/log/auth.log:/var/log/auth.log:ro
     cap_add:
       - NET_ADMIN
     # Note: Removed network_mode: host as per your latest change
