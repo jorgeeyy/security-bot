@@ -28,16 +28,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: security_api
-    environment:
-      - PYTHONUNBUFFERED=1
-      - REDIS_HOST=redis
-      - MYSQL_HOST=mysql
-      - MYSQL_USER=security_user
-      - MYSQL_PASSWORD=password_here
-      - MYSQL_DB=security_bot
-      - MOCK_MODE=false
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    env_file: ../.env
     ports:
       - "8000:8000"
     depends_on:
@@ -50,23 +41,18 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: security_monitor
+    env_file: ../.env
     environment:
       - PYTHONUNBUFFERED=1
       - REDIS_HOST=redis
       - MYSQL_HOST=mysql
-      - MYSQL_USER=security_user
-      - MYSQL_PASSWORD=password_here
-      - MYSQL_DB=security_bot
-      - MOCK_MODE=false
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - NGINX_LOG_PATH=/var/log/nginx/access.log
+      - SSH_LOG_PATH=/var/log/auth.log
     volumes:
       - /var/log/nginx:/var/log/nginx:ro
       - /var/log/auth.log:/var/log/auth.log:ro
     cap_add:
       - NET_ADMIN
-    # Note: Removed network_mode: host as per your latest change
     depends_on:
       - redis
       - mysql
