@@ -1,0 +1,35 @@
+class ScraperDetector:
+    SENSITIVE_PATHS = [
+        ".env",
+        ".git",
+        "/admin",
+        "/wp-admin",
+        "/phpmyadmin",
+        ".bak",
+        ".config",
+        "/.ssh",
+        "/docker-compose.yml",
+        "/etc/passwd"
+    ]
+
+    @staticmethod
+    def is_scraper(path: str):
+        path_lower = path.lower()
+        for sensitive in ScraperDetector.SENSITIVE_PATHS:
+            if sensitive in path_lower:
+                return True, f"Sensitive path access: {sensitive}"
+        
+        return False, None
+    
+    @staticmethod
+    async def check_path_diversity(ip, path, redis_client):
+        """Check path diversity for a single IP (too many unique paths)."""
+        # This could use a Redis SET for paths visited per IP with a TTL
+        diversity_key = f"paths_visited:{ip}"
+        await redis_client.client.sadd(diversity_key, path)
+        await redis_client.client.expire(diversity_key, 3600)  # expires in 1 hour
+        count = await redis_client.client.scard(diversity_key)
+        
+        if count > 50:  # Threshold for page diversity
+            return True, f"High path diversity: {count} paths"
+        return False, None
