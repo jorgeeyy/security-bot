@@ -40,6 +40,10 @@ class MonitorWorker:
         if await redis_client.is_ip_banned(ip):
             return
 
+        # NEW: Check Whitelist from MySQL
+        if await mysql_client.is_whitelisted(ip):
+            return
+
         threat = None
         details = None
         

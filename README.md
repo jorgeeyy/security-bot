@@ -1,65 +1,85 @@
 # 🛡️ Server Monitoring & Intrusion Detection Bot (Production Spec)
 
-A real-time NGINX log monitor that detects and automatically mitigates malicious activity.
+A professional, real-time NGINX log monitor that detects, alerts, and mitigates malicious activity using a high-performance asynchronous architecture.
 
-## 🚀 Getting Started
+---
+
+## 🎯 Key Features
+
+- **Real-Time Log Ingestion**: Uses async IO to stream NGINX logs with rotation support.
+- **Threat Detection Engine**:
+  - **Botnet Detection**: Flags bursts of unique IPs from a single subnet (/24).
+  - **Scraper Detection**: Blocks attempts to access sensitive files (`.env`, `.git`) and high-diversity path scanning.
+  - **Bad Bot Mitigation**: Blocks known malicious User-Agents including `sqlmap`, `nmap`, and `postman`.
+  - **Rate Limiting**: Enforces requests-per-window thresholds (Default: 20req / 30s).
+- **Dual Persistent Storage**:
+  - **Redis**: Low-latency "Working Memory" for sliding-window detection and active bans.
+  - **MySQL**: Long-term persistent storage for attack history and **IP Whitelisting**.
+- **Alert System**: Professional HTML-formatted Telegram notifications with detailed threat metadata.
+- **Control API (FastAPI)**: REST endpoints for health stats, attack history, and manual IP management.
+
+---
+
+## 🚀 Deployment Guide
 
 ### 1. Prerequisites
+
 - Docker & Docker Compose
-- Redis & MySQL (optional if running locally with MOCK_MODE)
-- NGINX (with logs at `/var/log/nginx/access.log`)
-- Python 3.11+
+- NGINX on host (logs at `/var/log/nginx/access.log`)
+- Python 3.11+ (for local testing)
 
 ### 2. Configure Environment
+
 Create a `.env` file from the template and fill in your details:
-```bash
+
+```env
 TELEGRAM_BOT_TOKEN=your_token
-TELEGRAM_CHAT_ID=your_chat_id
-MOCK_MODE=false # Set to false for MySQL/Redis production usage
-MYSQL_HOST=localhost
+TELEGRAM_CHAT_ID=your_id
+
+MOCK_MODE=false # Set to false for Production (MySQL/Redis)
+
+# MySQL connection
+MYSQL_HOST=mysql
 MYSQL_USER=security_user
 MYSQL_PASSWORD=password
 MYSQL_DB=security_bot
 ```
 
-### 3. Quick Start (Docker)
+### 3. Quick Start (Production)
+
+Run the entire stack with a single command:
+
 ```bash
-docker-compose -f docker/docker-compose.yml up --build -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
-### 4. Running Manually
-```bash
-# Install dependencies
-pip install -r requirements.txt
+_Docker will automatically initialize the MySQL schema and start the Monitor Worker & API._
 
-# Start Redis locally
-redis-server
+---
 
-# Run the API
-python app/main.py
+## 🧪 Testing & Development
 
-# Run the Monitor Worker
-python workers/monitor.py
-```
+### Local Test Mode (No Redis/MySQL needed)
 
-## 🎯 Features
-- **Real-Time Log Ingestion**: Uses async IO to stream NGINX logs.
-- **Botnet Detection**: Bursts from subnets (/24) within a sliding window.
-- **Scraper Detection**: Blocks access to sensitive files (`.env`, `.git`) and high diversity visits.
-- **Bad Bot Mitigation**: Blocks known malicious User-Agents (`sqlmap`, `nmap`, etc.).
-- **Rate Limit Enforcement**: Configurable thresholds for request bursts.
-- **Telegram Integration**: Structured alerts for every threat detected and ban action.
-- **Auto-Mitigation**: Banning via `iptables` (requires root/NET_ADMIN).
+1. Set `MOCK_MODE=true` in `.env`.
+2. Start the integrated app: `python app/main.py`.
+3. Run the simulator: `python scripts/test_sim.py`.
 
-## 📊 API Endpoints
-- `GET /api/v1/stats`: Current monitoring status.
-- `GET /api/v1/attacks`: Recent threat history.
-- `GET /api/v1/banned-ips`: List of currently blocked IPs.
+### Manual Controls via API
 
-## 📁 Project Structure
+- **See Attacks**: `GET /api/v1/attacks`
+- **Whitelist an IP**: `POST /api/v1/whitelist/{ip}`
+- **Unban an IP**: `POST /api/v1/unban/{ip}`
+
+---
+
+## 📁 Repository Structure
+
 - `app/logs`: Watcher and Regex-based Parser.
 - `app/detection`: Individual modular detection engines.
-- `app/alerts`: Telegram service.
-- `app/mitigation`: Iptables/Firewall interface.
-- `workers/monitor.py`: The core monitoring service.
-- `docker/`: Deployment configuration.
+- `app/storage`: Redis and MySQL database clients.
+- `app/alerts`: Telegram service with HTML formatting.
+- `workers/monitor.py`: The core monitoring background service.
+- `docker/`: Full-stack Docker deployment configuration.
+- `scripts/`: Initialization SQL and test simulation scripts.
+- `testing.md`: Full Testing Guide

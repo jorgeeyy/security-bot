@@ -41,4 +41,28 @@ class MySQLClient:
                 except Exception as e:
                     print(f"[MYSQL_ERR] Failed to log attack: {e}")
 
+    async def is_whitelisted(self, ip):
+        """Check if an IP is whitelisted."""
+        if not self.pool:
+            try:
+                await self.connect()
+            except Exception:
+                return False
+
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT ip FROM whitelist WHERE ip = %s", (ip,))
+                return await cur.fetchone() is not None
+
+    async def add_to_whitelist(self, ip, reason="Manual"):
+        """Add an IP to the whitelist."""
+        if not self.pool:
+            await self.connect()
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    "INSERT IGNORE INTO whitelist (ip, reason) VALUES (%s, %s)",
+                    (ip, reason)
+                )
+
 mysql_client = MySQLClient()

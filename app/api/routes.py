@@ -30,5 +30,11 @@ async def get_banned_ips():
 async def unban_ip(ip: str):
     """Manually unban an IP."""
     await redis_client.client.delete(f"banned:{ip}")
-    # You'd also call firewall_mitigation.unban_ip_after(ip, 0) logic
     return {"message": f"IP {ip} unbanned"}
+
+@router.post("/whitelist/{ip}")
+async def whitelist_ip(ip: str):
+    """Manually whitelist an IP in MySQL."""
+    from app.storage.mysql_client import mysql_client
+    await mysql_client.add_to_whitelist(ip, "Manual via API")
+    return {"message": f"IP {ip} added to whitelist"}
