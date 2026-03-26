@@ -24,6 +24,10 @@ In another terminal:
 ```bash
 # This generates fake attacks in ./test_access.log
 python scripts/test_sim.py
+
+# To simulate a fake SSH attack, manually append to the log:
+echo "Mar 25 10:00:00 srv sshd[123]: Failed password for root from 9.9.9.9 port 12345 ssh2" >> test_auth.log
+# (Repeat 5 times to trigger a ban!)
 ```
 
 ---
@@ -33,7 +37,7 @@ Use this after running `docker-compose up -d`.
 
 ### Step 1: Check your logs
 ```bash
-# See the live feed from your bot
+# See the live feed from your bot (Nginx and SSH)
 docker logs -f security_monitor
 ```
 
@@ -56,35 +60,32 @@ From your own laptop, try to hit your VPS with a malicious header:
 
 ---
 
-## 📩 3. Alerting Tests (Telegram)
-Confirm that your bot is actually talking to Telegram:
-- On every detection, you should receive a structured notification in your chat.
-- If it fails, check the logs for `[TELEGRAM_ERR]`.
-- I've enabled **HTML parse mode**, so your messages will look bold and formatted.
+## 🖥️ 3. Whitelist Management (API Tools)
+Test the ability to bypass the firewall for development or VIPs.
+
+*   **View Whitelist**:
+    `GET http://your_vps_ip:8000/api/v1/whitelist`
+*   **Whitelist an IP**:
+    `POST http://your_vps_ip:8000/api/v1/whitelist/YOUR_IP`
+*   **Remove from Whitelist**:
+    `DELETE http://your_vps_ip:8000/api/v1/whitelist/YOUR_IP`
 
 ---
 
-## 🛡️ 4. Whitelist & Unban Testing
-Testing the "Manual Override" features:
+## 📩 4. Alerting & Stats Monitoring
+Confirm that your bot is talking to Telegram and tracking real-time data:
 
-### Step 1: Whitelist yourself
-If you don't want to be detected as a "Bad Bot" (e.g., when using Postman), run this:
-```bash
-curl -X POST http://your_vps_ip:8000/api/v1/whitelist/YOUR_IP
-```
-*Wait 1 minute, and now your IP will be ignored by the bot indefinitely.*
+*   **Live Traffic & Block Stats**:
+    Visit `http://your_vps_ip:8000/api/v1/stats`
+    Keep this page open and run an attack from Postman; the numbers will increment automatically!
 
-### Step 2: Unban an IP
-If you accidentally ban a user during your tests, use the API to let them back in:
-```bash
-curl -X POST http://your_vps_ip:8000/api/v1/unban/IP_ADDRESS
-```
+*   **HTML Telegram Alerts**:
+    Check your Telegram chat for bold, formatted messages detailing the attack source and reason.
 
 ---
 
-## 📊 5. Analytics & Dashboard Testing
-You can check the "History" at any time via your FastAPI endpoints:
+## 💾 5. Database Direct Access (Advanced)
+If you want to view the raw tables:
 
-- **Attacks History**: [http://your_vps_ip:8000/api/v1/attacks](http://your_vps_ip:8000/api/v1/attacks)
-- **Banned IP List**: [http://your_vps_ip:8000/api/v1/banned-ips](http://your_vps_ip:8000/api/v1/banned-ips)
-- **System Stats**: [http://your_vps_ip:8000/api/v1/stats](http://your_vps_ip:8000/api/v1/stats)
+*   **MySQL**: `docker exec -it security_mysql mysql -u security_user -p security_bot`
+*   **Redis**: `docker exec -it security_redis redis-cli`
