@@ -5,12 +5,17 @@ router = APIRouter()
 
 @router.get("/stats")
 async def get_stats():
-    """Returns general traffic stats (mocked for now)."""
-    # In a real system, you'd increment stats in Redis for every request
+    """Returns real-time traffic and threat stats."""
+    total_reqs = await redis_client.client.get("stats:total_requests") or 0
+    total_blocks = await redis_client.client.get("stats:total_blocks") or 0
+    active_bans = await redis_client.client.keys("banned:*")
+    
     return {
         "status": "online",
         "monitoring": True,
-        "active_bans": await redis_client.client.keys("banned:*")
+        "total_requests_processed": int(total_reqs),
+        "total_threats_blocked": int(total_blocks),
+        "currently_banned_count": len(active_bans)
     }
 
 @router.get("/attacks")
@@ -21,10 +26,15 @@ async def get_attacks(limit: int = 10):
 
 @router.get("/banned-ips")
 async def get_banned_ips():
-    """Returns a list of currently blocked IPs."""
+    """List all currently banned IPs in Redis."""
     keys = await redis_client.client.keys("banned:*")
-    ips = [key.replace("banned:", "") for key in keys]
-    return {"banned_ips": ips}
+    return {"banned_ips": [k.replace("banned:", "") for k in keys]}
+
+@router.get("/whitelist")
+async def get_whitelist():
+    """List all whitelisted IPs in MySQL."""
+    from app.storage.mysql_client import mysql_client
+    return {"whitelist": await mysql_client.get_all_whitelisted()}
 
 @router.post("/unban/{ip}")
 async def unban_ip(ip: str):
@@ -38,3 +48,10 @@ async def whitelist_ip(ip: str):
     from app.storage.mysql_client import mysql_client
     await mysql_client.add_to_whitelist(ip, "Manual via API")
     return {"message": f"IP {ip} added to whitelist"}
+
+@router.delete("/whitelist/{ip}")
+async def remove_whitelist_ip(ip: str):
+    """Manually remove an IP from the MySQL whitelist."""
+    from app.storage.mysql_client import mysql_client
+    await mysql_client.remove_from_whitelist(ip)
+    return {"message": f"IP {ip} removed from whitelist"}

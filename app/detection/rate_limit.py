@@ -2,7 +2,7 @@ from app.config import settings
 from app.storage.redis_client import redis_client
 
 class RateLimitDetector:
-    RPS_THRESHOLD = 20  # Max 20 reqs in 30s per default config, but let's say 50 for rate limit
+    RPS_THRESHOLD = 5  # Max 5 reqs in 30s per default config, but let's say 50 for rate limit
     
     @staticmethod
     async def is_rate_limited(ip, timestamp, r_client=redis_client):

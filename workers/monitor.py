@@ -38,6 +38,9 @@ class MonitorWorker:
         path = parsed["path"]
         timestamp = time.time()
 
+        # Update global stats
+        await redis_client.client.incr("stats:total_requests")
+
         if await self._should_skip(ip):
             return
 
@@ -104,7 +107,8 @@ class MonitorWorker:
     async def handle_threat(self, ip, threat_type, details, parsed):
         print(f"[THREAT] {threat_type}: {ip} -> {details}")
         
-        # Ban the IP
+        # Update blocks counter
+        await redis_client.client.incr("stats:total_blocks")
         await redis_client.ban_ip(ip)
         await firewall_mitigation.ban_ip(ip)
         

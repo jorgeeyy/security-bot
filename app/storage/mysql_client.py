@@ -52,7 +52,10 @@ class MySQLClient:
         async with self.pool.acquire() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("SELECT ip FROM whitelist WHERE ip = %s", (ip,))
-                return await cur.fetchone() is not None
+                found = await cur.fetchone() is not None
+                if found:
+                    print(f"[WHITELIST] Skipping whitelisted IP: {ip}")
+                return found
 
     async def add_to_whitelist(self, ip, reason="Manual"):
         """Add an IP to the whitelist."""
@@ -64,5 +67,22 @@ class MySQLClient:
                     "INSERT IGNORE INTO whitelist (ip, reason) VALUES (%s, %s)",
                     (ip, reason)
                 )
+
+    async def remove_from_whitelist(self, ip):
+        """Remove an IP from the whitelist."""
+        if not self.pool:
+            await self.connect()
+        async with self.pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM whitelist WHERE ip = %s", (ip,))
+
+    async def get_all_whitelisted(self):
+        """Return a list of all whitelisted IPs."""
+        if not self.pool:
+            await self.connect()
+        async with self.pool.acquire() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("SELECT * FROM whitelist")
+                return await cur.fetchall()
 
 mysql_client = MySQLClient()
