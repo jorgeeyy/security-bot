@@ -29,72 +29,78 @@ class MonitorWorker:
         await self.watcher.watch_all_logs(self.on_nginx_line, self.on_ssh_line)
 
     async def on_nginx_line(self, line: str):
-        parsed = LogParser.parse_line(line)
-        if not parsed:
-            return
+        try:
+            parsed = LogParser.parse_line(line)
+            if not parsed:
+                return
 
-        ip = parsed["ip"]
-        ua = parsed["user_agent"]
-        path = parsed["path"]
-        timestamp = time.time()
+            ip = parsed["ip"]
+            ua = parsed["user_agent"]
+            path = parsed["path"]
+            timestamp = time.time()
 
-        # Update global stats
-        await redis_client.client.incr("stats:total_requests")
+            # Update global stats
+            await redis_client.client.incr("stats:total_requests")
 
-        if await self._should_skip(ip):
-            return
+            if await self._should_skip(ip):
+                return
 
-        threat = None
-        details = None
-        
-        # 1. Bad Bot Check
-        is_bad_bot, msg = BadBotDetector.is_bad_bot(ua)
-        if is_bad_bot:
-            threat, details = "BAD BOT DETECTED", msg
-        
-        # 2. Scraper Check
-        if not threat:
-            is_scraper, msg = ScraperDetector.is_scraper(path)
-            if is_scraper:
-                threat, details = "SCRAPER DETECTED", msg
-            else:
-                is_div, msg = await ScraperDetector.check_path_diversity(ip, path, redis_client)
-                if is_div:
-                    threat, details = "SCRAPER (HIGH DIVERSITY) DETECTED", msg
+            threat = None
+            details = None
+            
+            # 1. Bad Bot Check
+            is_bad_bot, msg = BadBotDetector.is_bad_bot(ua)
+            if is_bad_bot:
+                threat, details = "BAD BOT DETECTED", msg
+            
+            # 2. Scraper Check
+            if not threat:
+                is_scraper, msg = ScraperDetector.is_scraper(path)
+                if is_scraper:
+                    threat, details = "SCRAPER DETECTED", msg
+                else:
+                    is_div, msg = await ScraperDetector.check_path_diversity(ip, path, redis_client)
+                    if is_div:
+                        threat, details = "SCRAPER (HIGH DIVERSITY) DETECTED", msg
 
-        # 3. Rate Limit Check
-        if not threat:
-            is_rate, msg = await RateLimitDetector.is_rate_limited(ip, timestamp)
-            if is_rate:
-                threat, details = "RATE LIMIT EXCEEDED", msg
+            # 3. Rate Limit Check
+            if not threat:
+                is_rate, msg = await RateLimitDetector.is_rate_limited(ip, timestamp)
+                if is_rate:
+                    threat, details = "RATE LIMIT EXCEEDED", msg
 
-        # 4. Botnet Check
-        if not threat:
-            is_botnet, msg = await BotnetDetector.is_botnet_activity(ip, timestamp)
-            if is_botnet:
-                threat, details = "BOTNET ACTIVITY DETECTED", msg
+            # 4. Botnet Check
+            if not threat:
+                is_botnet, msg = await BotnetDetector.is_botnet_activity(ip, timestamp)
+                if is_botnet:
+                    threat, details = "BOTNET ACTIVITY DETECTED", msg
 
-        if threat:
-            await self.handle_threat(ip, threat, details, parsed)
+            if threat:
+                await self.handle_threat(ip, threat, details, parsed)
+        except Exception as e:
+            print(f"[MONITOR] Error processing Nginx line: {e}")
 
     async def on_ssh_line(self, line: str):
-        parsed = LogParser.parse_ssh_line(line)
-        if not parsed:
-            return
+        try:
+            parsed = LogParser.parse_ssh_line(line)
+            if not parsed:
+                return
 
-        ip = parsed["ip"]
-        if await self._should_skip(ip):
-            return
+            ip = parsed["ip"]
+            if await self._should_skip(ip):
+                return
 
-        # Check for SSH Brute Force
-        is_brute, msg = await SSHDetector.is_brute_force(ip, redis_client)
-        if is_brute:
-            # We'll use a dummy 'parsed' dictionary for handle_threat for SSH cases
-            ssh_info = {
-                "path": "SSH_AUTH",
-                "user_agent": f"SSH User: {parsed['user']}"
-            }
-            await self.handle_threat(ip, "SSH BRUTE FORCE DETECTED", msg, ssh_info)
+            # Check for SSH Brute Force
+            is_brute, msg = await SSHDetector.is_brute_force(ip, redis_client)
+            if is_brute:
+                # We'll use a dummy 'parsed' dictionary for handle_threat for SSH cases
+                ssh_info = {
+                    "path": "SSH_AUTH",
+                    "user_agent": f"SSH User: {parsed['user']}"
+                }
+                await self.handle_threat(ip, "SSH BRUTE FORCE DETECTED", msg, ssh_info)
+        except Exception as e:
+            print(f"[MONITOR] Error processing SSH line: {e}")
 
     async def _should_skip(self, ip):
         """Check if IP is already banned or whitelisted."""

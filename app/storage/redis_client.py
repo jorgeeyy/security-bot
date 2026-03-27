@@ -1,5 +1,8 @@
 import asyncio
 import redis.asyncio as redis
+from redis.backoff import ExponentialBackoff
+from redis.retry import Retry
+from redis.exceptions import ConnectionError, TimeoutError
 from app.config import settings
 
 class MockRedis:
@@ -78,7 +81,14 @@ class RedisClient:
             print("[STORAGE] REDIS Mock active.")
             self.client = MockRedis()
         else:
-            self.client = redis.Redis(host=host, port=port, decode_responses=True)
+            self.client = redis.Redis(
+                host=host, 
+                port=port, 
+                decode_responses=True,
+                retry=Retry(ExponentialBackoff(), 3),
+                retry_on_error=[ConnectionError, TimeoutError],
+                health_check_interval=30
+            )
 
     async def close(self):
         await self.client.close()
