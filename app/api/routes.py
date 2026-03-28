@@ -39,7 +39,10 @@ async def get_whitelist():
 @router.post("/unban/{ip}")
 async def unban_ip(ip: str):
     """Manually unban an IP."""
+    import asyncio
+    from app.mitigation.firewall import firewall_mitigation
     await redis_client.client.delete(f"banned:{ip}")
+    asyncio.create_task(firewall_mitigation.unban_ip_after(ip, 0))
     return {"message": f"IP {ip} unbanned"}
 
 @router.post("/whitelist/{ip}")

@@ -86,24 +86,12 @@ class RedisClient:
                 port=port, 
                 decode_responses=True,
                 retry=Retry(ExponentialBackoff(), 3),
-                retry_on_error=[ConnectionError, TimeoutError],
-                health_check_interval=30
+                retry_on_error=[ConnectionError, TimeoutError]
             )
 
     async def close(self):
         await self.client.close()
 
-    async def set_value(self, key, value, ttl=None):
-        await self.client.set(key, value, ex=ttl)
-
-    async def get_value(self, key):
-        return await self.client.get(key)
-
-    async def increment_counter(self, key, ttl=None):
-        count = await self.client.incr(key)
-        if ttl:
-            await self.client.expire(key, ttl)
-        return count
 
     async def add_to_list(self, key, value):
         await self.client.lpush(key, value)

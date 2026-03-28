@@ -27,6 +27,10 @@ async def startup_event():
 async def shutdown_event():
     if monitor_task:
         monitor_task.cancel()
+        try:
+            await monitor_task
+        except asyncio.CancelledError:
+            pass
     await redis_client.close()
 
 app.include_router(router, prefix="/api/v1")

@@ -24,12 +24,16 @@ class ScraperDetector:
     @staticmethod
     async def check_path_diversity(ip, path, redis_client):
         """Check path diversity for a single IP (too many unique paths)."""
-        # This could use a Redis SET for paths visited per IP with a TTL
         diversity_key = f"paths_visited:{ip}"
-        await redis_client.client.sadd(diversity_key, path)
-        await redis_client.client.expire(diversity_key, 3600)  # expires in 1 hour
-        count = await redis_client.client.scard(diversity_key)
         
-        if count > 50:  # Threshold for page diversity
-            return True, f"High path diversity: {count} paths"
+        count_before = await redis_client.client.scard(diversity_key)
+        await redis_client.client.sadd(diversity_key, path)
+        
+        if count_before == 0:
+            await redis_client.client.expire(diversity_key, 3600)  # expires in 1 hour
+            
+        new_count = await redis_client.client.scard(diversity_key)
+        
+        if new_count > 50:  # Threshold for page diversity
+            return True, f"High path diversity: {new_count} paths"
         return False, None
