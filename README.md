@@ -9,15 +9,15 @@ A professional, real-time NGINX and SSH log monitor that detects, alerts, and mi
 - **Real-Time Log Ingestion**: Concurrent monitoring of NGINX (`access.log`) and SSH (`auth.log`) streams.
 - **Threat Detection Engine**:
     - **SSH Brute Force**: Detects and blocks multiple failed SSH login attempts.
-    - **Botnet Detection**: Flags bursts of unique IPs from a single subnet (/24).
-    - **Scraper Detection**: Blocks attempts to access sensitive files (`.env`, `.git`).
+    - **Botnet Detection**: Flags bursts of unique IPs from a single subnet (Supports both **IPv4 `/24`** and **IPv6 `/64`** block tracking).
+    - **Scraper Detection**: Blocks attempts to access sensitive files (`.env`, `.git`) while securely utilizing dynamic Time-To-Live loops.
     - **Bad Bot Mitigation**: Blocks known malicious User-Agents including `sqlmap`, `nmap`.
-    - **Rate Limiting**: Enforces requests-per-window thresholds (Default: 20req / 30s).
+    - **Rate Limiting**: Enforces strict requests-per-window thresholds natively (Default: 5req / 30s).
 - **Dual Persistent Storage**:
     - **Redis**: Low-latency "Working Memory" for sliding-window detection, active bans, and **Live Traffic Stats**.
     - **MySQL**: Long-term persistent storage for attack history and **IP Whitelisting**.
-- **Alert System**: Professional HTML-formatted Telegram notifications with detailed threat metadata.
-- **Control API (FastAPI)**: REST endpoints for health stats, attack history, and **full Whitelist management**.
+- **Control API (FastAPI)**: REST endpoints for health stats, attack history, **full Whitelist management**, and synced host-OS `iptables` unbanning.
+- **Production Resilience Engine**: System features native protection loops against Redis connection anomalies, protects the event loop during graceful shutdowns, and guards against OS File Descriptor leaks during standard Linux Log Rotations.
 
 ---
 

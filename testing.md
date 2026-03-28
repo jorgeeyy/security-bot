@@ -53,10 +53,13 @@ From your own laptop, try to hit your VPS with a malicious header:
     curl http://your_vps_ip/.env
     ```
 *   **Rate Limit Test**:
-    (Run this multiple times quickly)
+    (Run this multiple times quickly to hit the exact 5 threshold limit)
     ```bash
-    for i in {1..35}; do curl -s http://your_vps_ip/ > /dev/null; done
+    for i in {1..10}; do curl -s http://your_vps_ip/ > /dev/null; done
     ```
+
+*   **IPv6 Detection Test**:
+    Ping the server repeatedly via your dual-stacked IPv6 proxy or home terminal to ensure your IPv6 `/64` subnet triggers botnet defenses flawlessly.
 
 ---
 
@@ -69,6 +72,15 @@ Test the ability to bypass the firewall for development or VIPs.
     `POST http://your_vps_ip:8000/api/v1/whitelist/YOUR_IP`
 *   **Remove from Whitelist**:
     `DELETE http://your_vps_ip:8000/api/v1/whitelist/YOUR_IP`
+
+## 🛡️ 4. Active Ban Controls (API Tools)
+Verify that your API talks seamlessly with the kernel!
+
+*   **View Banned IPs**:
+    `GET http://your_vps_ip:8000/api/v1/banned-ips`
+*   **Unban an IP**:
+    `POST http://your_vps_ip:8000/api/v1/unban/YOUR_IP`
+    *Note: Validating this directly checks whether your web app cleanly synchronizes Redis teardowns with active `iptables` daemon executions!*
 
 ---
 
