@@ -8,14 +8,14 @@ A professional, real-time NGINX and SSH log monitor that detects, alerts, and mi
 
 - **Real-Time Log Ingestion**: Concurrent monitoring of NGINX (`access.log`) and SSH (`auth.log`) streams.
 - **Threat Detection Engine**:
-    - **SSH Brute Force**: Detects and blocks multiple failed SSH login attempts.
-    - **Botnet Detection**: Flags bursts of unique IPs from a single subnet (Supports both **IPv4 `/24`** and **IPv6 `/64`** block tracking).
-    - **Scraper Detection**: Blocks attempts to access sensitive files (`.env`, `.git`) while securely utilizing dynamic Time-To-Live loops.
-    - **Bad Bot Mitigation**: Blocks known malicious User-Agents including `sqlmap`, `nmap`.
-    - **Rate Limiting**: Enforces strict requests-per-window thresholds natively (Default: 5req / 30s).
+  - **SSH Brute Force**: Detects and blocks multiple failed SSH login attempts.
+  - **Botnet Detection**: Flags bursts of unique IPs from a single subnet (Supports both **IPv4 `/24`** and **IPv6 `/64`** block tracking).
+  - **Scraper Detection**: Blocks attempts to access sensitive files (`.env`, `.git`) while securely utilizing dynamic Time-To-Live loops.
+  - **Bad Bot Mitigation**: Blocks known malicious User-Agents including `sqlmap`, `nmap`.
+  - **Rate Limiting**: Enforces strict requests-per-window thresholds natively (Default: 5req / 30s).
 - **Dual Persistent Storage**:
-    - **Redis**: Low-latency "Working Memory" for sliding-window detection, active bans, and **Live Traffic Stats**.
-    - **MySQL**: Long-term persistent storage for attack history and **IP Whitelisting**.
+  - **Redis**: Low-latency "Working Memory" for sliding-window detection, active bans, and **Live Traffic Stats**.
+  - **MySQL**: Long-term persistent storage for attack history and **IP Whitelisting**.
 - **Control API (FastAPI)**: REST endpoints for health stats, attack history, **full Whitelist management**, and synced host-OS `iptables` unbanning.
 - **Production Resilience Engine**: System features native protection loops against Redis connection anomalies, protects the event loop during graceful shutdowns, and guards against OS File Descriptor leaks during standard Linux Log Rotations.
 
@@ -24,12 +24,15 @@ A professional, real-time NGINX and SSH log monitor that detects, alerts, and mi
 ## 🚀 Deployment Guide
 
 ### 1. Prerequisites
+
 - Docker & Docker Compose
 - NGINX on host (logs at `/var/log/nginx/access.log`)
 - SSH auth logs (typically at `/var/log/auth.log`)
 
 ### 2. Configure Environment
+
 Create a `.env` file from the [template](file:///c:/Users/jqube/Documents/projects/bots/security-bot/.env.example) and fill in your details:
+
 ```env
 TELEGRAM_BOT_TOKEN=your_token
 TELEGRAM_CHAT_ID=your_id
@@ -38,22 +41,27 @@ BAN_TIME=86400  # 24 hour default
 ```
 
 ### 3. Quick Start (Production)
+
 Run the entire stack with a single command from the project root:
+
 ```bash
 docker compose --env-file .env -f docker/docker-compose.yml up --build -d
 ```
-*Docker will automatically initialize the MySQL schema, start the Monitor Worker & API, and mount your live logs.*
+
+_Docker will automatically initialize the MySQL schema, start the Monitor Worker & API, and mount your live logs._
 
 ---
 
 ## 🧪 Testing & Development
 
 ### Local Test Mode (No Redis/MySQL needed)
+
 1. Set `MOCK_MODE=true` in `.env`.
 2. Start the integrated app: `python app/main.py`.
 3. Run the simulator: `python scripts/test_sim.py`.
 
 ### Manual Controls via API
+
 - **Live Stats**: `GET /api/v1/stats` (Real-time traffic and blocks)
 - **Get Whitelist**: `GET /api/v1/whitelist`
 - **Whitelist an IP**: `POST /api/v1/whitelist/{ip}`
@@ -63,6 +71,7 @@ docker compose --env-file .env -f docker/docker-compose.yml up --build -d
 ---
 
 ## 📁 Repository Structure
+
 - `app/logs`: Watcher and Regex-based Parser.
 - `app/detection`: Individual modular detection engines (Web & SSH).
 - `app/storage`: Redis and MySQL database clients.
@@ -71,4 +80,3 @@ docker compose --env-file .env -f docker/docker-compose.yml up --build -d
 - `docker/`: Full-stack Docker deployment configuration.
 - `scripts/`: Initialization SQL and test simulation scripts.
 - `testing.md`: [Full Testing Guide](file:///c:/Users/jqube/Documents/projects/bots/security-bot/testing.md).
-- `walkthrough.md`: [System Architecture Walkthrough](file:///c:/Users/jqube/Documents/projects/bots/security-bot/walkthrough.md).
