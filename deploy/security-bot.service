@@ -15,7 +15,7 @@ StandardOutput=journal
 StandardError=journal
 
 # Hardening
-NoNewPrivileges=true
+NoNewPrivileges=false
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
