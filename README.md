@@ -1,82 +1,66 @@
-# 🛡️ Server Monitoring & Intrusion Detection Bot (Production Spec)
+# 🛡️ Security Bot 
 
-A professional, real-time NGINX and SSH log monitor that detects, alerts, and mitigates malicious activity using a high-performance asynchronous architecture.
+A lightweight, native host-based observability and control layer built on top of **Fail2Ban**. This Python bot provides real-time Telegram notifications when threats are detected and allows you to instantly manage your server's security via Telegram commands.
 
 ---
 
-## 🎯 Key Features
+## 🏗️ Architecture
 
-- **Real-Time Log Ingestion**: Concurrent monitoring of NGINX (`access.log`) and SSH (`auth.log`) streams.
-- **Threat Detection Engine**:
-  - **SSH Brute Force**: Detects and blocks multiple failed SSH login attempts.
-  - **Botnet Detection**: Flags bursts of unique IPs from a single subnet (Supports both **IPv4 `/24`** and **IPv6 `/64`** block tracking).
-  - **Scraper Detection**: Blocks attempts to access sensitive files (`.env`, `.git`) while securely utilizing dynamic Time-To-Live loops.
-  - **Bad Bot Mitigation**: Blocks known malicious User-Agents including `sqlmap`, `nmap`.
-  - **Rate Limiting**: Enforces strict requests-per-window thresholds natively (Default: 5req / 30s).
-- **Dual Persistent Storage**:
-  - **Redis**: Low-latency "Working Memory" for sliding-window detection, active bans, and **Live Traffic Stats**.
-  - **MySQL**: Long-term persistent storage for attack history and **IP Whitelisting**.
-- **Control API (FastAPI)**: REST endpoints for health stats, attack history, **full Whitelist management**, and synced host-OS `iptables` unbanning.
-- **Production Resilience Engine**: System features native protection loops against Redis connection anomalies, protects the event loop during graceful shutdowns, and guards against OS File Descriptor leaks during standard Linux Log Rotations.
+Instead of reinventing the wheel with Docker, Redis, and MySQL, this bot natively integrates with your Linux host.
+- **Fail2Ban** acts as the *Muscle*, securely parsing SSH and standard Nginx logs and applying kernel-level `iptables/UFW` blocks.
+- **Security-Bot** acts as the *Brain*, listening to Fail2Ban's Unix socket to alert you on Telegram via Long Polling, and running advanced anomaly detection on your `access.log`.
+
+### Key Features
+1. **Real-Time Alerts:** Get instant Telegram notifications when an IP is banned, unbanned, or violates a strict HTTP rate threshold.
+2. **Advanced Scraper Detection:** While Fail2Ban perfectly traps SSH brute-forcers, this bot tails your Nginx logs to catch API rate-spikes, sensitive path scraping (`/.env`, `/.git`), and malicious User-Agents, passing them to Fail2Ban instantly.
+3. **Telegram Command Center:** Issue remote commands straight from your phone: `/ban`, `/unban`, `/whitelist`, `/status`, and `/banned`.
+
+---
+
+## 🛠️ Repository Structure
+
+*   `bot.py`: Main entrypoint handling Long-Polling and thread delegation.
+*   `config.py`: Environment configurations and path mappings.
+*   `fail2ban/`: Connects the bot directly to the `/run/security-bot/bot.sock` Unix socket and wraps root OS `fail2ban-client` commands.
+*   `nginx/`: Custom `log_watcher` tracking anomalous activity natively using in-memory queues (bypassing Redis dependencies).
+*   `store/`: Native flat-file reading tracking trusted IP addresses.
+*   `telegram/`: HTTP web-request handling and formatted notification engines.
+*   `deploy/`: Infrastructure configuration including `jail.local`, `systemd` supervisors, and the complete `setup.sh` provisioning script.
 
 ---
 
 ## 🚀 Deployment Guide
 
-### 1. Prerequisites
+### Prerequisites
+- A Linux VPS (Ubuntu/Debian recommended).
+- NGINX on host (routing logs to `/var/log/nginx/access.log`).
+- `sudo` (root) privileges on the server.
+- A Telegram Bot Token from **@BotFather** and your Chat ID from **@userinfobot**.
 
-- Docker & Docker Compose
-- NGINX on host (logs at `/var/log/nginx/access.log`)
-- SSH auth logs (typically at `/var/log/auth.log`)
-
-### 2. Configure Environment
-
-Create a `.env` file from the [template](file:///c:/Users/jqube/Documents/projects/bots/security-bot/.env.example) and fill in your details:
-
-```env
-TELEGRAM_BOT_TOKEN=your_token
-TELEGRAM_CHAT_ID=your_id
-MOCK_MODE=false
-BAN_TIME=86400  # 24 hour default
+### 1. Configure Credentials
+Prior to, or immediately after deployment, edit `/opt/security-bot/config.py` on your server to include your respective IDs:
+```python
+TELEGRAM_TOKEN : str = "1234567:ABCDEF-GHIJKL"
+CHAT_ID        : str = "123456789"
 ```
 
-### 3. Quick Start (Production)
-
-Run the entire stack with a single command from the project root:
-
+### 2. Auto-Provision the Server
+From the root of the project folder on your VPS, run the deployment shell script:
 ```bash
-docker compose --env-file .env -f docker/docker-compose.yml up --build -d
+sudo bash deploy/setup.sh
+```
+*Note: This script will natively install Python 3 venv, create a secured `security-bot` system user, provision `/etc/sudoers.d/`, install and enable `fail2ban`, mount the unix sockets, and seamlessly kickstart the systemd service all in one motion.*
+
+*(You can also use `sudo bash deploy/setup.sh 4 8` to selectively run chunks of the install loop!)*
+
+### 3. Setup Telegram Commands
+Open Telegram, navigate to **@BotFather**, type `/setcommands`, and paste the following natively into your chat to bind the UI menu:
+```text
+ban - Manually ban an IP via fail2ban
+unban - Manually unban an IP
+whitelist - Add an IP to the whitelist
+banned - List currently banned IPs
+status - Show fail2ban jail summary
 ```
 
-_Docker will automatically initialize the MySQL schema, start the Monitor Worker & API, and mount your live logs._
-
----
-
-## 🧪 Testing & Development
-
-### Local Test Mode (No Redis/MySQL needed)
-
-1. Set `MOCK_MODE=true` in `.env`.
-2. Start the integrated app: `python app/main.py`.
-3. Run the simulator: `python scripts/test_sim.py`.
-
-### Manual Controls via API
-
-- **Live Stats**: `GET /api/v1/stats` (Real-time traffic and blocks)
-- **Get Whitelist**: `GET /api/v1/whitelist`
-- **Whitelist an IP**: `POST /api/v1/whitelist/{ip}`
-- **Remove from Whitelist**: `DELETE /api/v1/whitelist/{ip}`
-- **Unban an IP**: `POST /api/v1/unban/{ip}`
-
----
-
-## 📁 Repository Structure
-
-- `app/logs`: Watcher and Regex-based Parser.
-- `app/detection`: Individual modular detection engines (Web & SSH).
-- `app/storage`: Redis and MySQL database clients.
-- `app/alerts`: Telegram service with HTML formatting.
-- `workers/monitor.py`: The core monitoring background service.
-- `docker/`: Full-stack Docker deployment configuration.
-- `scripts/`: Initialization SQL and test simulation scripts.
-- `testing.md`: [Full Testing Guide](file:///c:/Users/jqube/Documents/projects/bots/security-bot/testing.md).
+Enjoy your fully automated, absolutely locked-down Linux server!
