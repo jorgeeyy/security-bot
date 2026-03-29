@@ -1,0 +1,21 @@
+[DEFAULT]
+bantime  = 86400
+findtime = 600
+maxretry = 5
+action   = %(action_)s
+           telegram-notify
+
+[sshd]
+enabled = true
+
+[nginx-badbots]
+enabled = true
+
+[nginx-botsearch]
+enabled = true
+
+[recidive]
+enabled  = true
+bantime  = 604800
+findtime = 86400
+maxretry = 3
