@@ -20,7 +20,7 @@ async def get_status(jail: str = "nginx-botsearch") -> str:
 
 async def _run(*args) -> str:
     proc = await asyncio.create_subprocess_exec(
-        "fail2ban-client", *args,
+        "sudo", "fail2ban-client", *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
