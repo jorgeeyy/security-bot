@@ -1,14 +1,14 @@
 [Unit]
-Description=Monitor Bot — VPS Security Notifications
+Description=Security Bot — VPS Security Notifications
 After=network.target fail2ban.service
 Wants=fail2ban.service
 
 [Service]
 Type=simple
-User=monitor-bot
-Group=monitor-bot
-WorkingDirectory=/opt/monitor-bot
-ExecStart=/opt/monitor-bot/venv/bin/python bot.py
+User=security-bot
+Group=security-bot
+WorkingDirectory=/opt/security-bot
+ExecStart=/opt/security-bot/venv/bin/python bot.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -19,7 +19,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/run/monitor-bot /opt/monitor-bot
+ReadWritePaths=/run/security-bot /opt/security-bot
 
 [Install]
 WantedBy=multi-user.target
