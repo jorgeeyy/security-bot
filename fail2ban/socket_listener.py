@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 
-SOCKET_PATH = "/run/monitor-bot/bot.sock"
+SOCKET_PATH = "/run/security-bot/bot.sock"
 
 async def start(on_event):
     # Only establish the socket loop if this is running on an active Linux system, 
