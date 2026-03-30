@@ -15,8 +15,10 @@ async def add_ignoreip(ip: str, jail: str = DEFAULT_JAIL):
 async def get_banned(jail: str = "nginx-botsearch") -> str:
     return await _run("get", jail, "banned")
 
-async def get_status(jail: str = "nginx-botsearch") -> str:
-    return await _run("status", jail)
+async def get_status(jail: str = None) -> str:
+    if jail:
+        return await _run("status", jail)
+    return await _run("status")
 
 async def _run(*args) -> str:
     proc = await asyncio.create_subprocess_exec(

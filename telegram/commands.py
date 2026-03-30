@@ -54,10 +54,12 @@ async def handle_command(text, ban_ip, unban_ip, add_ignoreip, get_banned, get_s
             await add_ignoreip(args[0]) # Prompt fail2ban configuration exception
             await send(f"✅ Whitelisted `{args[0]}`")
         elif cmd == "/banned":
-            banned = await get_banned()
-            await send(f"🔒 *Banned IPs*:\n```\n{banned}\n```")
+            jail_name = args[0] if args else "nginx-botsearch"
+            banned = await get_banned(jail_name)
+            await send(f"🔒 *Banned IPs ({jail_name})*:\n```\n{banned}\n```")
         elif cmd == "/status":
-            status = await get_status()
+            jail_name = args[0] if args else None
+            status = await get_status(jail_name)
             await send(f"📊 *Status*:\n```\n{status}\n```")
         else:
             await send("❓ Unknown command or missing IP address.")
