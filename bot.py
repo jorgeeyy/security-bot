@@ -1,4 +1,5 @@
 import asyncio
+import time
 from config import settings
 from store.whitelist import load_whitelist
 from fail2ban.socket_listener import start as start_socket
@@ -9,6 +10,8 @@ from telegram.notifier import send, format_ban, format_unban, \
 from telegram.commands import start as start_commands
 
 whitelist = load_whitelist()
+recent_bans = {}
+COOLDOWN_SECONDS = 300
 
 async def on_fail2ban_event(event: dict):
     ip = event.get("ip")
@@ -24,6 +27,13 @@ async def on_nginx_detect(event: dict):
     if not ip or ip in whitelist:
         return
 
+    now = time.time()
+
+
+    if ip in recent_bans and (now - recent_bans[ip]) < COOLDOWN_SECONDS:
+        return
+    recent_bans[ip] = now
+
     # Auto-ban immediately — notify after as a receipt
     try:
         await ban_ip(ip, jail="nginx-botsearch")
@@ -38,11 +48,23 @@ async def on_nginx_detect(event: dict):
     if fmt:
         await send(fmt(event))
 
+async def cleanup_recent_bans():
+    while True:
+        await asyncio.sleep(600)
+        now = time.time()
+        expired = [ip for ip, t in recent_bans.items()
+                   if now - t >= COOLDOWN_SECONDS]
+        for ip in expired:
+            del recent_bans[ip]
+        if expired:
+            print(f"[CLEANUP] Evicted {len(expired)} expired IPs from recent_bans")
+
 async def main():
     await asyncio.gather(
         start_socket(on_fail2ban_event),
         start_log_watcher(on_nginx_detect, whitelist),
         start_commands(ban_ip, unban_ip, add_ignoreip, get_banned, get_status, whitelist),
+        cleanup_recent_bans(),
     )
 
 if __name__ == "__main__":
